@@ -5,3 +5,4 @@ This is the list of authors of the project:
 - Gerben Koopman
 - Haowen Zhang
 - Thijs Maessen
+- Maris Ozols
