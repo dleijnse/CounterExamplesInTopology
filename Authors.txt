@@ -1,0 +1,6 @@
+This is the list of authors of the project:
+
+
+- Dion Leijnse
+- Gerben Koopman
+- Haowen Zhang
