@@ -45,3 +45,22 @@ theorem derived_set_empty : derivedSet (Set.univ : Set X) = ∅ := by
     -- constructor
     -- exact fun ⦃a⦄ a_1 ↦ a_1
     -- simp
+
+-- x is not a limit point of the constant sequence x, considered as a set, but it is an adherent point
+
+--with definition below, I am required to manually input X
+--def limit_point (x : X) (A : Set X) := ∀ B : Set X, (IsOpen B ∧ x ∈ B) → ∃y ∈ B ∩ A, y≠ x
+def limit_point {X: Type} [TopologicalSpace X](x : X) (A : Set X) := ∀ B : Set X, (IsOpen B ∧ x ∈ B) → ∃y ∈ B ∩ A, y≠ x
+def adherent_point {X: Type} [TopologicalSpace X](x : X) (A : Set X) := ∀ B : Set X, (IsOpen B ∧ x ∈ B) → ∃y ∈ B, y ∈ A
+
+
+theorem not_lim_point_mem (x : X) : ¬∃ p : X, limit_point p {x} := by
+    apply not_exists.mpr
+    intro p h
+    rcases ((h {p}) ⟨ isOpen_discrete {p} , rfl⟩ ) with ⟨ y , ⟨ ⟨ h0,h1⟩ ,h2⟩ ⟩
+    apply h2 h0
+
+theorem adherent_point_mem (x p : X) : adherent_point p {x} → p = x := by
+    intro h
+    rcases ((h {p}) ⟨ isOpen_discrete {p} , rfl⟩ ) with ⟨ y, ⟨ h1, h2⟩⟩
+    rw[← h1,h2]
