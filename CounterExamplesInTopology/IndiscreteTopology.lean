@@ -48,5 +48,39 @@ def IndiscreteTopology' : TopologicalSpace X where
 lemma indiscr'_eq_top : IndiscreteTopology' = ⊤ := by
   sorry
 
-lemma open_iff_empty_or_all (A : Set X) : IsOpen A ↔ A = ∅ ∨ A = ⊤ := by
+lemma open_iff_empty_or_all (A : Set X) : IsOpen A ↔ A = ∅ ∨ A = ⊤ :=
+  h.eq_top ▸ TopologicalSpace.isOpen_top_iff A
+
+lemma compact_of_indiscrete (A : Set X) : IsCompact A := by
+  apply isCompact_of_finite_subcover
+  intro ι U hUOpen hi
+  rcases em (∃ i : ι, U i = Set.univ) with (hU | hnU)
+  · obtain ⟨j, hUj⟩ := hU
+    use {j}
+    simp [Finset.mem_singleton, Set.iUnion_iUnion_eq_left, hUj]
+  · rw [not_exists] at hnU
+    have hE : ∀ i : ι, U i = ∅ := by
+      intro j
+      have hUj := (open_iff_empty_or_all X (U j)).mp (hUOpen j)
+      tauto
+    have hAEmpty : A = ∅ := by
+      suffices hInc : A ⊆ ∅
+      · exact Set.subset_eq_empty hInc rfl
+      · calc A ⊆ ⋃ i, U i      := by exact hi
+             _  ⊆ ⋃ i : ι, ∅   := by simp [hE]
+             _  = ∅             := by exact Set.iUnion_empty
+    use ∅
+    tauto_set
+
+lemma all_functions_to_indiscrete_continuous (Y : Type) [TopologicalSpace Y] (f : Y → X) :
+    Continuous f := by
+  sorry
+
+lemma indiscrete_path_connected : PathConnectedSpace X := by
+  sorry
+
+lemma indiscrete_not_T0 : ¬ T0Space X := by
+  sorry
+
+lemma indiscrete_not_metrizable : ¬ TopologicalSpace.MetrizableSpace X := by
   sorry
