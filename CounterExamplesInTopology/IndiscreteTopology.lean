@@ -82,5 +82,5 @@ lemma indiscrete_path_connected : PathConnectedSpace X := by
 lemma indiscrete_not_T0 : ¬ T0Space X := by
   sorry
 
-lemma indiscrete_not_metrizable : ¬ TopologicalSpace.MetrizableSpace X := by
+lemma indiscrete_not_metrizable (h2points : ∃ x : X, ∃ y : X, x ≠ y) : ¬ TopologicalSpace.MetrizableSpace X := by
   sorry
