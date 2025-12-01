@@ -46,7 +46,14 @@ def IndiscreteTopology' : TopologicalSpace X where
       exact Set.sUnion_eq_empty.mpr hEmpty
 
 lemma indiscr'_eq_top : IndiscreteTopology' = ⊤ := by
-  sorry
+  apply isTop_iff_eq_top.mp
+  unfold IsTop
+  intro a Y A h1
+  rcases h1 with he | ha
+  · rw[he]
+    exact isOpen_empty
+  · rw[ha]
+    exact isOpen_univ
 
 lemma open_iff_empty_or_all (A : Set X) : IsOpen A ↔ A = ∅ ∨ A = ⊤ :=
   h.eq_top ▸ TopologicalSpace.isOpen_top_iff A
@@ -74,13 +81,44 @@ lemma compact_of_indiscrete (A : Set X) : IsCompact A := by
 
 lemma all_functions_to_indiscrete_continuous (Y : Type) [TopologicalSpace Y] (f : Y → X) :
     Continuous f := by
-  sorry
+  apply continuous_iff_coinduced_le.mpr
+  rw[h.eq_top]
+  simp
 
-lemma indiscrete_path_connected : PathConnectedSpace X := by
-  sorry
+-- I think we need the non-emptiness of X to be imposed - Haowen
+lemma indiscrete_path_connected (h : Nonempty X) : PathConnectedSpace X := by
+  refine { nonempty := h, joined := ?_ }
+  intro x y
+  unfold Joined
+  let f : unitInterval → X := fun t => if (t : ℝ) = 1 then y else x
+  let F : C(↑unitInterval, X) :=
+  { toFun := f,
+    continuous_toFun := all_functions_to_indiscrete_continuous X unitInterval f }
+  use F
+  · simp [F,f]
+  · simp [F,f]
 
-lemma indiscrete_not_T0 : ¬ T0Space X := by
-  sorry
+--also need to add that there are at least two points I think -- Haowen
+lemma indiscrete_not_T0 (h2points : ∃ x : X, ∃ y : X, x ≠ y) : ¬ T0Space X := by
+  intro hc
+  rw[t0Space_iff_inseparable] at hc
+  rcases h2points with ⟨x, ⟨y, hxy⟩⟩
+  have hxy0 := hc x y
+  rw[inseparable_iff_forall_isOpen] at hxy0
+  apply hxy
+  apply hxy0
+  intro s hs
+  rw[open_iff_empty_or_all] at hs
+  rcases hs with hs | hs
+  · -- case s = ∅
+    simp [hs]
+  · -- case s = ⊤
+    simp [hs]
+
 
 lemma indiscrete_not_metrizable (h2points : ∃ x : X, ∃ y : X, x ≠ y) : ¬ TopologicalSpace.MetrizableSpace X := by
-  sorry
+-- we use that a metric space is T0 to obatin a contradiction
+  intro hc
+  have hm : MetricSpace X := TopologicalSpace.metrizableSpaceMetric X
+  have ht0 : T0Space X := inferInstance
+  exact indiscrete_not_T0 X h2points ht0
