@@ -1,6 +1,6 @@
 import Mathlib
 
-variable (X : Type)
+variable (X : Type) [TopologicalSpace X]
 variable (P : Partition (Set.univ : Set X))
 
 def partitionTopology : TopologicalSpace X where
@@ -14,20 +14,20 @@ def partitionTopology : TopologicalSpace X where
   isOpen_inter := sorry
   isOpen_sUnion := sorry
 
-class PartitionTopology [t : TopologicalSpace X] : Prop where
+structure PartitionTopology [t : TopologicalSpace X] : Prop where
   eq_partition_topology : t = partitionTopology X P
 
 
 -- An subset of X is open if and only if it is closed
-lemma open_iff_closed (A : Set X) [TopologicalSpace X] [PartitionTopology X P] :
+lemma open_iff_closed (A : Set X) (hP : PartitionTopology X P) :
     IsOpen A ↔ IsClosed A := by
   sorry
 
-lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S) [TopologicalSpace X]
-    [PartitionTopology X P] :
+lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S)
+    (hP : PartitionTopology X P) :
     ¬ T0Space X := by
   sorry
 
-lemma pseudoMetrizable [TopologicalSpace X] [PartitionTopology X P] :
+lemma pseudoMetrizable (hP : PartitionTopology X P) :
     TopologicalSpace.PseudoMetrizableSpace X := by
   sorry
