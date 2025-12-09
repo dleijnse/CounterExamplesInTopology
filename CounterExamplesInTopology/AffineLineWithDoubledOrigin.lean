@@ -39,26 +39,6 @@ example : IsOpenImmersion (CategoryTheory.CategoryStruct.id (A1 R) : (A1 R) ⟶ 
   IsOpenImmersion.of_isIso _
 
 
-
--- Two instances of Christian that should now be in the latest version of Mathlib.
--- (Remove these when the branch has been bumped)
-instance {U X Y : Scheme} (f : U ⟶ X) (g : U ⟶ Y) [IsOpenImmersion f] [IsOpenImmersion g]
-    (i : WalkingPair) : Mono ((span f g ⋙ Scheme.forget).map (WidePushoutShape.Hom.init i)) := by
-  rw [mono_iff_injective]
-  cases i
-  · simpa using f.isOpenEmbedding.injective
-  · simpa using g.isOpenEmbedding.injective
-
-
-instance {U X Y : Scheme} (f : U ⟶ X) (g : U ⟶ Y) [IsOpenImmersion f] [IsOpenImmersion g]
-    {i j : WalkingSpan} (t : i ⟶ j) : IsOpenImmersion ((span f g).map t) := by
-  obtain (a | (a | a)) := t
-  · simp only [WidePushoutShape.hom_id, CategoryTheory.Functor.map_id]
-    infer_instance
-  · simpa
-  · simpa
-
-
 -- Definition of the affine line with doubled origin
 def affineLineWithDoubledOrigin : Scheme := pushout (i R)  (i R)
 
@@ -70,7 +50,7 @@ def toBase : affineLineWithDoubledOrigin R ⟶  Spec (.of R) :=
     (Spec.map <| CommRingCat.ofHom Polynomial.C)
 
 
--- Main theorem we want to prove in this section. 
+-- Main theorem we want to prove in this section.
 theorem not_isSeparated_toBase : ¬ (IsSeparated <| toBase  R) := by sorry
 
 
