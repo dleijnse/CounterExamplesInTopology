@@ -1,33 +1,56 @@
 import Mathlib
 
-variable (X : Type) [TopologicalSpace X]
+variable (X : Type) [t : TopologicalSpace X]
 variable (P : Partition (Set.univ : Set X))
 
-def partitionTopology : TopologicalSpace X where
-  IsOpen (A : Set X) := ∃ S : Set P.parts, A = Set.sUnion S
-  isOpen_univ := by
-    have h := P.sSup_eq'
-    rw [Set.sSup_eq_sUnion] at h
-    use (Set.univ : Set P.parts)
-    simp only [Partition.coe_parts, SetLike.coe_sort_coe, Set.image_univ,
-      Subtype.range_coe_subtype, SetLike.setOf_mem_eq, ← h]
-  isOpen_inter := sorry
-  isOpen_sUnion := sorry
+def PartitionTopology : TopologicalSpace X := TopologicalSpace.generateFrom P.parts
 
-structure PartitionTopology [t : TopologicalSpace X] : Prop where
-  eq_partition_topology : t = partitionTopology X P
+class partitionTopology where
+  hEq : t = PartitionTopology X P
+
+variable [hp : partitionTopology X P]
+
+lemma P_is_basis : TopologicalSpace.IsTopologicalBasis P.parts := {
+  exists_subset_inter := by
+    intro s hs t ht x hx
+    use s
+    refine ⟨hs, ?_, ?_⟩
+    · tauto_set
+    · sorry
+  sUnion_eq := P.sSup_eq'
+  eq_generateFrom := by
+    rw [hp.hEq]
+    rfl
+}
+
+lemma basic_open (A : Set X) (hA : A ∈ P.parts) : IsOpen A := by
+  rw [hp.hEq]
+  exact TopologicalSpace.isOpen_generateFrom_of_mem hA
+
+lemma open_iff_union_of_P (A : Set X) : IsOpen A ↔ ∃ s : Set (Set X),
+    s ⊆ P.parts ∧ A = Set.sUnion s := by
+  constructor
+  · intro hA
+    have hRes := TopologicalSpace.IsTopologicalBasis.open_eq_sUnion (P_is_basis X P) hA
+    obtain ⟨S, hSP, hSU⟩ := hRes
+    use S
+  · intro h
+    obtain ⟨s, hs, hA⟩ := h
+    subst hA
+    apply isOpen_sUnion
+    intro t ht
+    exact basic_open X P t (hs ht)
 
 
 -- An subset of X is open if and only if it is closed
-lemma open_iff_closed (A : Set X) (hP : PartitionTopology X P) :
+lemma open_iff_closed (A : Set X) :
     IsOpen A ↔ IsClosed A := by
   sorry
 
-lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S)
-    (hP : PartitionTopology X P) :
+lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S) :
     ¬ T0Space X := by
   sorry
 
-lemma pseudoMetrizable (hP : PartitionTopology X P) :
+lemma pseudoMetrizable :
     TopologicalSpace.PseudoMetrizableSpace X := by
   sorry
