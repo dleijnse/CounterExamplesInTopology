@@ -16,7 +16,13 @@ lemma P_is_basis : TopologicalSpace.IsTopologicalBasis P.parts := {
     use s
     refine ⟨hs, ?_, ?_⟩
     · tauto_set
-    · sorry
+    · have hst : s = t := by
+        by_contra hc
+        have := Set.disjoint_iff_inter_eq_empty.mp (P.pairwiseDisjoint hs ht hc)
+        simp at this
+        rw[this] at hx
+        exact hx
+      simp[hst]
   sUnion_eq := P.sSup_eq'
   eq_generateFrom := by
     rw [hp.hEq]
@@ -46,6 +52,7 @@ lemma open_iff_union_of_P (A : Set X) : IsOpen A ↔ ∃ s : Set (Set X),
 lemma open_iff_closed (A : Set X) :
     IsOpen A ↔ IsClosed A := by
   sorry
+
 
 lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S) :
     ¬ T0Space X := by
