@@ -1,5 +1,5 @@
 import Mathlib
-
+open Topology
 variable (X : Type) [TopologicalSpace X] [DiscreteTopology X]
 set_option linter.style.longLine false
 set_option linter.unusedSectionVars false
@@ -8,8 +8,8 @@ set_option linter.unusedSectionVars false
 
 
 --It is the finest topology
-theorem discr_top_finest (Top1 : TopologicalSpace X) [Top2 : TopologicalSpace X] [h : DiscreteTopology X] : ∀ (A : Set X), (Top1.IsOpen A) → IsOpen A  := by
-    exact fun A h ↦ isOpen_discrete A
+theorem discr_top_finest (Top1 : TopologicalSpace X) : ∀ (A : Set X), (Top1.IsOpen A) → IsOpen[⊥] A  := by
+    exact fun A h ↦ trivial
 
 --Essentially same statement, but perhaps more inline with mathlib conventions.
 --For some reason, it puts the discrete topology onto top2.
@@ -94,3 +94,63 @@ theorem adherent_point_mem (x p : X) : adherent_point p {x} → p = x := by
     intro h
     rcases ((h {p}) ⟨ isOpen_discrete {p} , rfl⟩ ) with ⟨ y, ⟨ h1, h2⟩⟩
     rw[← h1,h2]
+
+theorem discrete_continuity {Y : Type} [TopologicalSpace Y] (f : X → Y) : Continuous f := by
+  exact continuous_of_discreteTopology
+
+open Classical
+
+noncomputable def disc_dist {X} : X  → X   → ℝ := --not sure how I should put X here
+  fun (a : X) ↦ fun (b : X) ↦ if (a = b) then 0 else 1
+
+--this metric thing is annoying, as the language in mathlib does not really align with how I think about it
+
+theorem disc_dist_self :  ∀ (x : X), disc_dist x x = 0 := by
+  intro x
+  rw[disc_dist]
+  simp
+
+theorem disc_dist_comm : ∀ (x y : X), disc_dist x y = disc_dist y x := by
+  intro x y
+  rw[disc_dist,disc_dist]
+  by_cases h : x = y
+  · rw[h]
+  · have h1: 1 = if x = y then (0:ℝ) else (1: ℝ)
+    · simp[h]
+    have h2:1=  if y = x then (0:ℝ) else (1: ℝ)
+    · simp
+      tauto
+    rw[← h1,← h2]
+
+theorem disc_dist_triangle : ∀ (x y z : X), disc_dist x z ≤ disc_dist x y + disc_dist y z := by
+  intro x y z
+  repeat rw[disc_dist]
+  by_cases h : x = y <;> by_cases h1 : y = z <;> by_cases h2:  x = z <;> simp[h,h1,h2]
+  have h3 : ¬ z = y := by tauto
+  simp[h3]
+
+
+
+theorem eq_of_disc_dist_eq_zero : ∀ (x y : X), disc_dist x y = 0 → x = y := by
+  intro x y
+  rw[disc_dist]
+  simp
+
+theorem disc_dist_eq_topo_dist : ∀ (s : Set X), IsOpen s ↔ ∀ x ∈ s, ∃ ε > 0, ∀ (y : X), disc_dist x y < ε → y ∈ s := by
+  intro s
+  constructor
+  · intro _ x h1
+    use 1
+    constructor
+    · norm_num
+    · intro y
+      rw[disc_dist]
+      intro h
+      by_cases h3: x = y
+      rwa[← h3]
+
+      by_contra
+      aesop
+  · intro ; exact isOpen_discrete s
+
+noncomputable def metric_discrete_topology {X} [TopologicalSpace X] [DiscreteTopology X]:= MetricSpace.ofDistTopology disc_dist (disc_dist_self X) (disc_dist_comm X) (disc_dist_triangle X) (disc_dist_eq_topo_dist X) (eq_of_disc_dist_eq_zero X)
