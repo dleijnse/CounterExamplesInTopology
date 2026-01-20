@@ -1,27 +1,45 @@
 import Mathlib
 open Topology
-variable (X : Type) [TopologicalSpace X] [DiscreteTopology X]
+variable (X : Type)
+variable [T : TopologicalSpace X]
+[TopologicalSpace X] [DiscreteTopology X]
 set_option linter.style.longLine false
 set_option linter.unusedSectionVars false
 
 --#check Topology.IsOpen_of -- What does this do???
 
+--Discrete topology is the finest topology
+theorem discr_top_finest
+    (D : TopologicalSpace X)
+    (h : @DiscreteTopology X D) : --makes it clear that D has discrete topology
+    ∀ (A : Set X), (T.IsOpen A) → (D.IsOpen A) := by
+  intro A _
+  exact isOpen_discrete A
 
---It is the finest topology
-theorem discr_top_finest (Top1 : TopologicalSpace X) : ∀ (A : Set X), (Top1.IsOpen A) → IsOpen[⊥] A  := by
-    exact fun A h ↦ trivial
+--Same result but proved without tactics
+theorem discr_top_finest'
+    (D : TopologicalSpace X)
+    (h : @DiscreteTopology X D) :
+    ∀ (A : Set X), (T.IsOpen A) → (D.IsOpen A) :=
+  fun A _ ↦ isOpen_discrete A
 
---Essentially same statement, but perhaps more inline with mathlib conventions.
---For some reason, it puts the discrete topology onto top2.
-theorem discr_top_finest2 (Top1 Top2 : TopologicalSpace X) (h : DiscreteTopology X) : Top2 ≤  Top1 := by
-    apply isOpen_implies_isOpen_iff.mp
-    exact fun s g↦ isOpen_discrete s
+--Different statement of the same result
+--(finest topology in the partial order)
+theorem discr_top_finest''
+    (D : TopologicalSpace X)
+    (h : @DiscreteTopology X D) :
+    D ≤ T := by
+  apply isOpen_implies_isOpen_iff.mp
+  exact fun A _ ↦ isOpen_discrete A
 
---Alternatively, this one explicitly uses that the discrete topology is the smallest one.
-theorem discr_top_finest3 (Top1 Top2 : TopologicalSpace X) (h : DiscreteTopology X) : Top2 ≤  Top1 := by
-    rw[h.eq_bot]
-    exact bot_le
-    --exact fun U a ↦ trivial --Alternative method
+--Different proof
+theorem discr_top_finest'''
+    (D : TopologicalSpace X)
+    (h : @DiscreteTopology X D) :
+    D ≤ T := by
+  rw [h.eq_bot]
+  exact bot_le
+  -- exact fun U a ↦ trivial --Alternative method
 
 --every point is isolated, isolated means, not in derived set, which is the collection of all limit points of a set. A limit point of a subset is, is a point such that all open sets of that point have another distinct point in the set as well.
 
