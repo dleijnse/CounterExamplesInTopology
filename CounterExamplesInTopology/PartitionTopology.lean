@@ -156,6 +156,12 @@ def pullbackPartition' {α β : Type} [CompleteLattice α] [CompleteLattice β] 
       sorry
   }
 
+-- for `f : X → Y` surjective, and a partition `P` on `Y`, then if we equip `X` and `Y` with
+-- the partition topologies of `P` and the pullback of `P`, the map `f` is continuous with
+-- respect to these two topologies.
+lemma continuous_of_partition_topology {X Y : Type} (f : X → Y) (hf : f.Surjective)
+    (P : Partition (Set.univ : Set Y)) : Continuous f := by
+  sorry
 
 /-
 Below this, we define some specific interesting cases of the partition topologies
@@ -163,11 +169,17 @@ Below this, we define some specific interesting cases of the partition topologie
 
 -- Doubled real line ℝ ⨿ ℝ
 def twoℝ := ℝ × Bool
+def discreteℝ := ℝ
+
+variable [TopologicalSpace discreteℝ]
+variable [htℝ : DiscreteTopology discreteℝ]
+
+instance Uncountable_discreteℝ : Uncountable discreteℝ := by
+  unfold discreteℝ
+  infer_instance
 
 -- the projection of the doubled real line to ℝ
-def proj : twoℝ → ℝ := fun x ↦ x.1
-
-#check discretePartition ℝ (Set.univ : Set ℝ)
+def proj : twoℝ → discreteℝ := fun x ↦ x.1
 
 def doubledPartition : Partition (Set.univ : Set twoℝ) :=
   pullbackPartition proj (Set.univ) (discretePartition ℝ (proj '' Set.univ))
@@ -175,6 +187,20 @@ def doubledPartition : Partition (Set.univ : Set twoℝ) :=
 variable [t : TopologicalSpace twoℝ]
 variable [hp : partitionTopology twoℝ doubledPartition]
 
-lemma notLindelof : ¬ LindelofSpace twoℝ := by
+omit X P hp in
+lemma proj_continuous : Continuous proj := by
 
   sorry
+
+omit X P hp htℝ t in
+lemma proj_surjective : proj.Surjective := fun y => ⟨⟨y, true⟩, rfl⟩
+
+lemma notLindelof : ¬ LindelofSpace twoℝ := by
+  -- maybe use that ℝ with the discrete topology is not Lindelof by
+  -- `countable_of_Lindelof_of_discrete`, and then use that `proj : twoℝ → ℝ`
+  -- is continuous and surjective, then done by `LindelofSpace.of_continuous_surjective`
+  intro hLindelof
+  have hLindelofℝ := LindelofSpace.of_continuous_surjective proj_continuous proj_surjective
+  have hCountable := countable_of_Lindelof_of_discrete (X := discreteℝ)
+  have hUncountable := @not_countable _ Uncountable_discreteℝ
+  exact hUncountable hCountable
