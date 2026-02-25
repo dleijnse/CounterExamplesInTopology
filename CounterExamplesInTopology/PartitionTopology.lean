@@ -10,19 +10,56 @@ class partitionTopology where
 
 variable [hp : partitionTopology X P]
 
+-- some API lemmas about partition
+
+lemma parts_eq {X : Type} {P : Partition Set.univ} {u s : Set X}
+  (hs : s ∈ P.parts) (hu : u ∈ P.parts) (h : s ∩ u ≠ ∅) : s = u := by
+   by_contra hc
+   have := Set.disjoint_iff_inter_eq_empty.mp (P.pairwiseDisjoint hs hu hc)
+   contradiction
+
+-- for a given element, there exists one part which covers it
+lemma exists_part_of_elt {X : Type} (P : Partition Set.univ) (x : X) : ∃ S ∈ P.parts, x ∈ S := by
+  apply Set.mem_sUnion.mp
+  rw[← Set.sSup_eq_sUnion]
+  simp
+
+--the complement of a union of sets in the partition equals the union of the complement
+omit hp t in
+lemma sUnion_compl_eq_compl_sUnion
+  {S : Set (Set X)} (hs : S ⊆ P.parts) : (⋃₀ S)ᶜ = ⋃₀ (P.parts \ S) := by
+  ext x
+  constructor
+  · intro h
+    simp
+    rcases exists_part_of_elt P x with ⟨t, ht_s, hx_t⟩
+    use t
+    refine ⟨⟨ht_s,?_⟩ , hx_t⟩
+    by_contra hc
+    have := Set.mem_sUnion.mpr ⟨t, hc, hx_t⟩
+    contradiction
+  · intro h
+    by_contra hc
+    simp at hc
+    rcases hc with ⟨t2, ht21, ht22⟩
+    rcases (Set.mem_sUnion.mp h) with ⟨t1, ht11, ht12⟩
+    have ht : t1 = t2 := by
+      apply parts_eq (Set.mem_of_mem_inter_left ht11) (hs ht21)
+      apply Set.nonempty_iff_ne_empty.mp
+      apply Set.inter_nonempty.mpr
+      use x
+    rw[ht] at ht11
+    aesop
+
+--back to the parition topology
 lemma P_is_basis : TopologicalSpace.IsTopologicalBasis P.parts := {
   exists_subset_inter := by
-    intro s hs t ht x hx
+    intro s hs u hu x hx
     use s
     refine ⟨hs, ?_, ?_⟩
     · tauto_set
-    · have hst : s = t := by
-        by_contra hc
-        have := Set.disjoint_iff_inter_eq_empty.mp (P.pairwiseDisjoint hs ht hc)
-        simp at this
-        rw[this] at hx
-        exact hx
-      simp[hst]
+    · have := parts_eq hs hu (Set.nonempty_iff_ne_empty.mp (Set.nonempty_of_mem hx))
+      simp[this]
   sUnion_eq := P.sSup_eq'
   eq_generateFrom := by
     rw [hp.hEq]
@@ -47,17 +84,179 @@ lemma open_iff_union_of_P (A : Set X) : IsOpen A ↔ ∃ s : Set (Set X),
     intro t ht
     exact basic_open X P t (hs ht)
 
-
 -- An subset of X is open if and only if it is closed
+include hp
 lemma open_iff_closed (A : Set X) :
     IsOpen A ↔ IsClosed A := by
-  sorry
+  have h := open_iff_union_of_P X P
+  constructor
+  · intro ho
+    rw[h] at ho
+    rcases ho with ⟨s, hs⟩
+    simp[hs.2]
+    rw[← isOpen_compl_iff]
+    rw[h (⋃₀ s)ᶜ]
+    use P.parts \ s
+    constructor
+    · tauto_set
+    · apply sUnion_compl_eq_compl_sUnion
+      apply hs.1
+  · intro hc
+    rw[← isOpen_compl_iff] at hc
+    rw[h] at hc
+    rcases hc with ⟨s, hs⟩
+    rw[h]
+    use P.parts \ s
+    constructor
+    · tauto_set
+    · apply compl_injective
+      rw[hs.2]
+      apply compl_injective
+      rw[compl_compl]
+      apply sUnion_compl_eq_compl_sUnion
+      exact hs.1
 
+lemma aux {S : P.parts} (x y : ↑↑S) (T : Set X) (hT : IsOpen T) : ↑x ∈ T → ↑y ∈ T := by
+  intro hx
+  rw[open_iff_union_of_P X P T] at hT
+  rcases hT with ⟨U, hU⟩
+  rw[hU.2] at hx
+  rcases Set.mem_sUnion.mp hx with ⟨S0, hS0⟩
+  have : S = S0 := by
+    apply parts_eq
+    · exact Subtype.coe_prop S
+    · exact hU.1 hS0.1
+    · apply Set.nonempty_iff_ne_empty'.mp
+      apply nonempty_subtype.mpr
+      use x
+      simp[hS0.2]
+  rw[← this] at hS0
+  rw[hU.2]
+  apply Set.mem_sUnion.mpr
+  use S
+  simp[hS0.1]
 
 lemma not_T0_if_not_trivial (h_nontrivial : ∃ S : P.parts, Nontrivial S) :
     ¬ T0Space X := by
-  sorry
+  rcases h_nontrivial with ⟨S , hS⟩
+  rcases hS.exists_pair_ne with ⟨x, y, hxy⟩
+  by_contra h
+  have : Inseparable (x : X) (y : X) := by
+    refine inseparable_iff_forall_isOpen.mpr ?_
+    intro T hT
+    constructor
+    · exact aux X P x y T hT
+    · exact aux X P y x T hT
+  aesop
 
+open Classical
 lemma pseudoMetrizable :
     TopologicalSpace.PseudoMetrizableSpace X := by
-  sorry
+  let dist (x y : X) : ℝ := if (∃ S ∈ P.parts, x ∈ S ∧ y ∈ S) then (0 : ℝ) else (1 : ℝ)
+  have h0 : ∀ x y : X, dist x y = 0 ∨ dist x y = 1 := by
+        exact fun x y ↦ ite_eq_or_eq (∃ S ∈ P.parts, x ∈ S ∧ y ∈ S) 0 1
+  letI m : PseudoMetricSpace X :=
+  { dist := dist
+    dist_self := by
+      intro x
+      unfold dist
+      simp
+      exact exists_part_of_elt P x
+    dist_comm := by
+      intro x y
+      by_cases h : (∃ S ∈ P.parts, x ∈ S ∧ y ∈ S) <;>
+      simp [dist, and_comm, and_left_comm, and_assoc]
+    dist_triangle := by
+      intro x y z
+      by_cases h1 : dist x z = 0
+      · by_cases h2 : dist x y = 0
+        · by_cases h3 : dist y z = 0
+          · simp[h1,h2,h3]
+          · simp[h1,h2,Or.resolve_left (h0 y z) h3]
+        · by_cases h3 : dist y z = 0
+          · simp[h1, Or.resolve_left (h0 x y) h2, h3]
+          · simp[h1, Or.resolve_left (h0 x y) h2, Or.resolve_left (h0 y z) h3]
+      · by_cases h2 : dist x y = 0
+        · by_cases h3 : dist y z = 0
+          · simp[dist] at h1
+            simp[dist] at h2
+            simp[dist] at h3
+            rcases h2 with ⟨S2, hS2⟩
+            rcases h3 with ⟨S3, hS3⟩
+            rw[← parts_eq hS2.1 hS3.1 (Set.nonempty_iff_ne_empty.mp ⟨y, hS2.2.2, hS3.2.1⟩)] at hS3
+            have := h1 S2 hS2.1 hS2.2.1 hS3.2.2
+            contradiction
+          · simp[Or.resolve_left (h0 x z) h1, h2, Or.resolve_left (h0 y z) h3]
+        · by_cases h3 : dist y z = 0
+          · simp[Or.resolve_left (h0 x z) h1, Or.resolve_left (h0 x y) h2, h3]
+          · simp [Or.resolve_left (h0 x z) h1, Or.resolve_left (h0 x y) h2,
+            Or.resolve_left (h0 y z) h3]
+        }
+  constructor
+  use m
+  ext U
+  rw[open_iff_union_of_P X P U]
+  rw[Metric.isOpen_iff]
+  constructor
+  · intro h
+    use {S ∈ P.parts | S ⊆ U}
+    constructor
+    · intro S hS
+      exact hS.1
+    · ext x
+      constructor
+      · intro hxU
+        obtain ⟨ε, hε, hball⟩ := h x hxU
+        simp
+        rcases exists_part_of_elt P x with ⟨t, ht⟩
+        use t
+        constructor
+        · constructor
+          · exact ht.1
+          · trans Metric.ball x ε
+            · intro y hy
+              simp[m]
+              suffices : dist y x = 0
+              · simp[this, hε]
+              · simp[dist]
+                use t
+                exact ⟨ht.1, hy, ht.2⟩
+            · exact hball
+        · exact ht.2
+      · intro hx
+        rcases Set.mem_sUnion.mp hx with ⟨t, ht⟩
+        simp at ht
+        apply ht.1.2
+        exact ht.2
+  · rintro ⟨s, hs⟩ x hx
+    rw[hs.2] at hx
+    use 1
+    constructor
+    simp
+    rcases Set.mem_sUnion.mp hx with ⟨T, hT⟩
+    have : Metric.ball x 1 = T := by
+      ext y
+      constructor
+      · intro hy
+        simp[m] at hy
+        have : dist y x = 0 := by
+          by_contra hc
+          rw[Or.resolve_left (h0 y x) hc] at hy
+          norm_num at hy
+        simp[dist] at this
+        rcases this with ⟨T0, hT0⟩
+        rw[← parts_eq hT0.1 (hs.1 hT.1) (Set.nonempty_iff_ne_empty.mp ⟨x, hT0.2.2, hT.2⟩)]
+        exact hT0.2.1
+      · intro hy
+        have : dist y x = 0 := by
+          unfold dist
+          simp
+          use T
+          exact ⟨hs.1 hT.1, ⟨hy, hT.2⟩⟩
+        simp[m, this]
+    rw[this]
+    intro y hy
+    rw[hs.2]
+    apply Set.mem_sUnion.mpr
+    use T
+    exact ⟨hT.1, hy⟩
