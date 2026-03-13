@@ -1,5 +1,6 @@
 import Mathlib
 
+section General
 variable (X : Type) [t : TopologicalSpace X]
 variable (P : Partition (Set.univ : Set X))
 
@@ -309,7 +310,9 @@ def pullbackPartition {X Y : Type} (f : X → Y) (A : Set X) (P : Partition (f '
     have h3 : x ⊆ f '' A := by
       -- use that the union over P.parts is exactly f '' A
       calc x ⊆ ⋃₀ P   := Set.subset_sUnion_of_subset (↑P) x (fun ⦃a⦄ a_1 ↦ a_1) hx
-           _ = f '' A  := by sorry -- partition_union (f '' A) P
+           _ = f '' A  := by
+            rw[← Set.sSup_eq_sUnion]
+            simp
     have h4 : ∃ a : X, a ∈ A ∧ f a = b := by
       rw [← Set.mem_image]
       exact h3 hb
@@ -352,13 +355,93 @@ def pullbackPartition' {α β : Type} [CompleteLattice α] [CompleteLattice β] 
       sorry
   }
 
+
+def subsetPartition {X : Type} (A : Set X) (P : Partition (Set.univ : Set X)) :
+    Partition A := {
+  parts := (Set.iUnion fun p : P.parts => {↑p ∩ A}) \ {∅}
+  sSupIndep' := by
+    simp[sSupIndep_iff, iSupIndep_def]
+    intro a ha ha1 b hb hb1 hab
+    apply Disjoint.inter_left
+    apply Disjoint.inter_right
+    by_cases h : a = b
+    · tauto
+    · exact P.disjoint ha hb h
+  bot_notMem' := by
+    simp
+  sSup_eq' := by
+    simp
+    rw[← Set.iUnion_inter]
+    rw[← Set.iSup_eq_iUnion]
+    unfold iSup
+    simp
+}
+
+
+
 -- for `f : X → Y` surjective, and a partition `P` on `Y`, then if we equip `X` and `Y` with
 -- the partition topologies of `P` and the pullback of `P`, the map `f` is continuous with
 -- respect to these two topologies.
+omit X P hp in
 lemma continuous_of_partition_topology {X Y : Type} (f : X → Y) (hf : f.Surjective)
-    (P : Partition (Set.univ : Set Y)) : Continuous f := by
-  sorry
+    (P : Partition (Set.univ : Set Y)) :
+    @Continuous X Y
+    (PartitionTopology X (pullbackPartition f _
+    (Partition.copy P (Set.image_univ_of_surjective hf).symm)))
+    (PartitionTopology Y P) f := by
+  set PX := (pullbackPartition f _ (Partition.copy P (Set.image_univ_of_surjective hf).symm))
+  set tX := PartitionTopology X PX
+  have hpx : partitionTopology X PX := {hEq := rfl }
+  set tY := PartitionTopology Y P
+  have hpy : partitionTopology Y P := {hEq := rfl}
+  apply continuous_def.mpr
+  intro s hs
+  rw[open_iff_union_of_P X PX]
+  rw[open_iff_union_of_P Y P] at hs
+  rcases hs with ⟨p0, hp0⟩
+  use Set.iUnion fun p : p0 => {f⁻¹' p}
+  constructor
+  · unfold PX pullbackPartition
+    simp
+    intro x hx
+    rw[Set.mem_range] at hx
+    rcases hx with ⟨y, hy⟩
+    use Set.inclusion hp0.1 y
+  · rw[hp0.2]
+    simp
 
+-- Discrete partition gives rise to discrete topology
+lemma discrete_topology_of_discrete_partition' (h : P = discretePartition X Set.univ) : t = ⊥ := by
+  refine eq_bot_of_singletons_open ?_
+  intro x
+  apply (open_iff_union_of_P X P {x}).mpr
+  use {{x}}
+  constructor
+  · simp[h]
+    unfold discretePartition
+    use {{x}}
+    simp
+  · simp
+
+omit t hp in
+lemma discrete_topology_of_discrete_partition :
+  PartitionTopology X (discretePartition X Set.univ) = ⊥ := by
+  refine eq_bot_of_singletons_open ?_
+  intro x
+  set P := discretePartition X Set.univ with hP
+  set t := PartitionTopology X P with ht
+  have hp : partitionTopology X P := { hEq := ht }
+  apply (open_iff_union_of_P X P {x}).mpr
+  use {{x}}
+  constructor
+  · simp[hP]
+    unfold discretePartition
+    use {{x}}
+    simp
+  · simp
+
+end General
+section Example
 /-
 Below this, we define some specific interesting cases of the partition topologies
 -/
@@ -367,7 +450,7 @@ Below this, we define some specific interesting cases of the partition topologie
 def twoℝ := ℝ × Bool
 def discreteℝ := ℝ
 
-variable [TopologicalSpace discreteℝ]
+variable [hℝ : TopologicalSpace discreteℝ]
 variable [htℝ : DiscreteTopology discreteℝ]
 
 instance Uncountable_discreteℝ : Uncountable discreteℝ := by
@@ -377,19 +460,27 @@ instance Uncountable_discreteℝ : Uncountable discreteℝ := by
 -- the projection of the doubled real line to ℝ
 def proj : twoℝ → discreteℝ := fun x ↦ x.1
 
+omit htℝ hℝ in
+lemma proj_surjective : proj.Surjective := fun y => ⟨⟨y, true⟩, rfl⟩
+
 def doubledPartition : Partition (Set.univ : Set twoℝ) :=
-  pullbackPartition proj (Set.univ) (discretePartition ℝ (proj '' Set.univ))
+  pullbackPartition proj (Set.univ) (discretePartition discreteℝ (proj '' Set.univ))
 
 variable [t : TopologicalSpace twoℝ]
 variable [hp : partitionTopology twoℝ doubledPartition]
 
-omit X P hp in
 lemma proj_continuous : Continuous proj := by
-
-  sorry
-
-omit X P hp htℝ t in
-lemma proj_surjective : proj.Surjective := fun y => ⟨⟨y, true⟩, rfl⟩
+  convert
+  continuous_of_partition_topology proj proj_surjective (discretePartition discreteℝ Set.univ)
+  · rw[hp.hEq]
+    unfold doubledPartition
+    congr
+    set h := Set.image_univ_of_surjective proj_surjective
+    ext x
+    rw[Partition.mem_copy_iff h.symm]
+    rw[h]
+  · rw[discrete_topology_of_discrete_partition discreteℝ]
+    exact htℝ.eq_bot
 
 lemma notLindelof : ¬ LindelofSpace twoℝ := by
   -- maybe use that ℝ with the discrete topology is not Lindelof by
